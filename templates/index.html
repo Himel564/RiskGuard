@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>RiskGuard — Fraud Intelligence Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg:      #080c12;
+      --panel:   #0d1420;
+      --card:    #111a28;
+      --border:  rgba(56,189,248,.12);
+      --accent:  #38bdf8;
+      --purple:  #818cf8;
+      --danger:  #f43f5e;
+      --success: #10b981;
+      --warn:    #f59e0b;
+      --critical:#ff2d55;
+      --txt:     #e2f0fb;
+      --mid:     #94a3b8;
+      --dim:     #64748b;
+      --gblue:   0 0 24px rgba(56,189,248,.25);
+    }
+
+    *,*::before,*::after { box-sizing:border-box; margin:0; padding:0 }
+    html { scroll-behavior:smooth }
+    body {
+      font-family:'DM Sans',sans-serif;
+      background:var(--bg); color:var(--txt);
+      min-height:100vh; overflow-x:hidden;
+      transition: background .5s;
+    }
+
+    /* Grid BG */
+    body::before {
+      content:''; position:fixed; inset:0;
+      background-image:
+        linear-gradient(rgba(56,189,248,.028) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(56,189,248,.028) 1px,transparent 1px);
+      background-size:44px 44px;
+      pointer-events:none; z-index:0;
+    }
+    /* Ambient orbs */
+    .orb { position:fixed; border-radius:50%; pointer-events:none; z-index:0; filter:blur(90px) }
+    .o1  { width:520px;height:520px; background:rgba(56,189,248,.055); top:-120px;left:-120px }
+    .o2  { width:420px;height:420px; background:rgba(244,63,94,.045);  bottom:-100px;right:-100px }
+
+    /* ── ALERT MODE — pulsing red border when fraud is live ─────────────── */
+    body.alert-mode { --border: rgba(244,63,94,.2) }
+    body.alert-mode::after {
+      content:''; position:fixed; inset:0; pointer-events:none; z-index:999;
+      border:2px solid rgba(244,63,94,.35);
+      border-radius:0;
+      animation:alertPulse 1.8s ease-in-out infinite;
+    }
+    @keyframes alertPulse {
+      0%,100%{ box-shadow: inset 0 0 60px rgba(244,63,94,.08); }
+      50%     { box-shadow: inset 0 0 120px rgba(244,63,94,.18); }
+    }
+
+    /* ── Layout ── */
+    .wrap { position:relative; z-index:1; max-width:1440px; margin:0 auto; padding:0 28px 80px }
+
+    /* ── Header ── */
+    header {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:26px 0 28px; border-bottom:1px solid var(--border);
+      transition: border-color .5s;
+    }
+    .brand { display:flex; align-items:center; gap:14px }
+    .brand-icon {
+      width:46px; height:46px; background:var(--accent); border-radius:12px;
+      display:grid; place-items:center; font-size:21px; box-shadow:var(--gblue);
+    }
+    .brand h1 { font-family:'Space Mono',monospace; font-size:1.2rem; font-weight:700; letter-spacing:-.5px }
+    .brand span { font-size:.68rem; color:var(--accent); text-transform:uppercase; letter-spacing:2px; font-weight:600 }
+    .hright { display:flex; align-items:center; gap:12px }
+    .live-pill {
+      display:flex; align-items:center; gap:8px; padding:6px 14px;
+      background:rgba(16,185,129,.1); border:1px solid rgba(16,185,129,.25);
+      border-radius:100px; font-size:.72rem; font-weight:700; color:var(--success);
+    }
+    .dot {
+      width:7px; height:7px; border-radius:50%;
+      background:var(--success); box-shadow:0 0 8px var(--success);
+      animation:blink 1.8s ease-in-out infinite;
+    }
+    @keyframes blink { 0%,100%{ opacity:1;transform:scale(1) } 50%{ opacity:.45;transform:scale(.8) } }
+    .clock { font-family:'Space Mono',monospace; font-size:.82rem; color:var(--dim) }
+
+    /* Sound toggle */
+    .sound-btn {
+      display:flex; align-items:center; gap:6px;
+      padding:5px 12px; background:rgba(56,189,248,.06);
+      border:1px solid var(--border); border-radius:100px;
+      font-size:.7rem; color:var(--dim); cursor:pointer;
+      transition:all .2s; font-family:'Space Mono',monospace;
+    }
+    .sound-btn:hover { background:rgba(56,189,248,.14); color:var(--accent); }
+    .sound-btn.on { color:var(--accent); border-color:rgba(56,189,248,.3); background:rgba(56,189,248,.1) }
+
+    /* ── KPI Row ── */
+    .kpi-row { display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin-top:28px }
+    .kpi {
+      background:var(--card); border:1px solid var(--border); border-radius:16px;
+      padding:20px 22px; position:relative; overflow:hidden;
+      transition:border-color .25s,transform .2s; cursor:default;
+    }
+    .kpi:hover { transform:translateY(-2px); border-color:rgba(56,189,248,.28) }
+    .kpi::after {
+      content:''; position:absolute; top:0;left:0;right:0; height:2px;
+      background:var(--accent); opacity:.55;
+    }
+    .kpi.red::after    { background:var(--danger)  }
+    .kpi.amber::after  { background:var(--warn)    }
+    .kpi.purple::after { background:var(--purple)  }
+    .kpi.green::after  { background:var(--success) }
+    .kpi-lbl  { font-size:.66rem; text-transform:uppercase; letter-spacing:1.5px; color:var(--dim); font-weight:600; margin-bottom:10px }
+    .kpi-num  { font-family:'Space Mono',monospace; font-size:1.85rem; font-weight:700; line-height:1 }
+    .kpi.red .kpi-num { color:var(--danger); text-shadow:0 0 18px rgba(244,63,94,.4) }
+    .kpi-sub  { font-size:.69rem; color:var(--dim); margin-top:7px }
+    .kpi-ico  { position:absolute; top:18px; right:18px; font-size:1.35rem; opacity:.25 }
+
+    /* KPI fraud flash */
+    @keyframes kpiFraud { 0%,100%{ box-shadow:none } 50%{ box-shadow:0 0 30px rgba(244,63,94,.25), inset 0 0 30px rgba(244,63,94,.05) } }
+    .kpi.red.fraud-flash { animation:kpiFraud 1.5s ease 2 }
+
+    /* ── Content grid ── */
+    .grid { display:grid; grid-template-columns:1fr 370px; gap:18px; margin-top:18px }
+    .col  { display:flex; flex-direction:column; gap:18px }
+
+    /* ── Section card ── */
+    .sc      { background:var(--card); border:1px solid var(--border); border-radius:16px; overflow:hidden }
+    .sc-head { display:flex; align-items:center; justify-content:space-between; padding:16px 22px; border-bottom:1px solid var(--border) }
+    .sc-title {
+      font-family:'Space Mono',monospace; font-size:.75rem; font-weight:700;
+      text-transform:uppercase; letter-spacing:1px;
+      display:flex; align-items:center; gap:8px;
+    }
+    .sc-dot { width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0 }
+    .chip {
+      font-family:'Space Mono',monospace; font-size:.67rem; padding:2px 10px;
+      border-radius:100px; border:1px solid rgba(56,189,248,.22);
+      color:var(--accent); background:rgba(56,189,248,.08);
+    }
+    .chip.red { border-color:rgba(244,63,94,.3); color:var(--danger); background:rgba(244,63,94,.1) }
+
+    /* ── Table ── */
+    .tbl-wrap {
+      overflow-x:auto; max-height:520px; overflow-y:auto;
+      scrollbar-width:thin; scrollbar-color: var(--border) transparent;
+    }
+    .tbl-wrap::-webkit-scrollbar { width:3px; height:3px }
+    .tbl-wrap::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px }
+    table { width:100%; border-collapse:collapse; min-width:700px }
+    thead tr { background:rgba(56,189,248,.04); position:sticky; top:0; z-index:2 }
+    th { padding:11px 16px; text-align:left; font-size:.64rem; text-transform:uppercase; letter-spacing:1.5px; color:var(--dim); font-weight:700 }
+    tbody tr { border-top:1px solid rgba(255,255,255,.035); transition:background .18s; animation:rowIn .35s ease }
+    @keyframes rowIn { from{opacity:0;transform:translateX(-8px)} to{opacity:1;transform:none} }
+    tbody tr:hover { background:rgba(56,189,248,.04) }
+    tbody tr.fraud-row { background:rgba(244,63,94,.04); animation:rowIn .35s ease, fraudRowGlow 2s ease 3 }
+    @keyframes fraudRowGlow { 0%,100%{background:rgba(244,63,94,.04)} 50%{background:rgba(244,63,94,.09)} }
+    td { padding:12px 16px; font-size:.8rem; white-space:nowrap }
+    .mono { font-family:'Space Mono',monospace; font-size:.72rem; color:var(--mid) }
+    .amt  { font-weight:600; color:var(--txt) }
+    .amt.high { color:var(--warn) }
+    .amt.critical { color:var(--danger) }
+
+    /* Status badges */
+    .badge { display:inline-flex;align-items:center;gap:5px;padding:3px 11px;border-radius:100px;font-size:.68rem;font-weight:700;letter-spacing:.4px }
+    .badge.fraud { background:rgba(244,63,94,.12);border:1px solid rgba(244,63,94,.3);color:var(--danger);animation:fraudBlink 1s ease 3 }
+    @keyframes fraudBlink { 0%,100%{box-shadow:0 0 8px rgba(244,63,94,.2)} 50%{box-shadow:0 0 22px rgba(244,63,94,.55)} }
+    .badge.clean { background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);color:var(--success) }
+
+    /* Action tag */
+    .action-tag { display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:6px;font-size:.66rem;font-weight:700;letter-spacing:.3px;font-family:'Space Mono',monospace }
+    .action-tag.blocked  { background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.25);color:var(--danger) }
+    .action-tag.approved { background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);color:var(--success) }
+
+    /* Risk level pill */
+    .risk { display:inline-flex;align-items:center;padding:2px 8px;border-radius:5px;font-size:.62rem;font-weight:700;letter-spacing:.5px;font-family:'Space Mono',monospace }
+    .risk.CRITICAL { background:rgba(255,45,85,.15);border:1px solid rgba(255,45,85,.3);color:#ff2d55 }
+    .risk.HIGH     { background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.28);color:var(--warn) }
+    .risk.MEDIUM   { background:rgba(129,140,248,.12);border:1px solid rgba(129,140,248,.28);color:var(--purple) }
+    .risk.LOW      { background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.2);color:var(--accent) }
+    .risk.NONE     { background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.18);color:var(--success) }
+
+    /* Confidence bar */
+    .conf-bar  { display:flex; align-items:center; gap:7px }
+    .bar-track { flex:1; height:4px; background:rgba(255,255,255,.06); border-radius:2px; max-width:72px }
+    .bar-fill  { height:100%; border-radius:2px; transition:width .4s ease }
+    .bar-lbl   { font-family:'Space Mono',monospace; font-size:.65rem; color:var(--dim); min-width:36px }
+
+    /* Pagination */
+    .pagination { display:flex;align-items:center;justify-content:space-between;padding:14px 22px;border-top:1px solid var(--border) }
+    .page-info  { font-size:.72rem;color:var(--dim);font-family:'Space Mono',monospace }
+    .page-btns  { display:flex;gap:8px }
+    .pbtn { padding:5px 14px;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.18);color:var(--accent);border-radius:8px;font-size:.72rem;font-family:'Space Mono',monospace;cursor:pointer;transition:background .2s }
+    .pbtn:hover    { background:rgba(56,189,248,.18) }
+    .pbtn:disabled { opacity:.3; cursor:not-allowed }
+
+    /* ── Donut ── */
+    .donut-area { padding:22px }
+    .donut-wrap { width:150px;height:150px;margin:0 auto 18px;position:relative }
+    .donut-center { position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center }
+    .donut-pct { font-family:'Space Mono',monospace;font-size:1.45rem;font-weight:700;color:var(--danger) }
+    .donut-sub { font-size:.58rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px }
+    .legend    { display:flex;flex-direction:column;gap:9px }
+    .leg       { display:flex;justify-content:space-between;align-items:center;font-size:.74rem }
+    .leg-l     { display:flex;align-items:center;gap:8px;color:var(--mid) }
+    .leg-d     { width:8px;height:8px;border-radius:50% }
+    .leg-v     { font-family:'Space Mono',monospace;font-size:.72rem;font-weight:700;color:var(--txt) }
+
+    /* ── Risk Breakdown (new) ── */
+    .risk-breakdown { padding:16px 22px; display:flex; flex-direction:column; gap:10px }
+    .riskb-row  { display:flex; align-items:center; gap:10px; font-size:.73rem }
+    .riskb-lbl  { width:68px; font-family:'Space Mono',monospace; font-size:.65rem; font-weight:700 }
+    .riskb-bar  { flex:1; height:6px; background:rgba(255,255,255,.05); border-radius:3px; overflow:hidden }
+    .riskb-fill { height:100%; border-radius:3px; transition:width .5s ease }
+    .riskb-val  { font-family:'Space Mono',monospace; font-size:.65rem; color:var(--dim); min-width:20px; text-align:right }
+
+    /* ── Alerts panel ── */
+    .alerts { max-height:320px; overflow-y:auto; scrollbar-width:thin; scrollbar-color: var(--border) transparent }
+    .alerts::-webkit-scrollbar { width:3px }
+    .alerts::-webkit-scrollbar-thumb { background:var(--border) }
+    .alert-row { display:flex;align-items:flex-start;gap:12px;padding:12px 22px;border-top:1px solid rgba(255,255,255,.035);transition:background .18s;cursor:pointer }
+    .alert-row:hover { background:rgba(244,63,94,.04) }
+    .a-icon { width:32px;height:32px;border-radius:8px;background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.2);display:grid;place-items:center;font-size:13px;flex-shrink:0;margin-top:1px }
+    .a-body { flex:1 }
+    .a-title { font-size:.76rem;font-weight:600;color:var(--txt) }
+    .a-meta  { font-size:.65rem;color:var(--dim);margin-top:3px;font-family:'Space Mono',monospace }
+    .a-tags  { display:flex;gap:5px;margin-top:5px;flex-wrap:wrap }
+    .a-amt   { font-family:'Space Mono',monospace;font-size:.76rem;font-weight:700;color:var(--danger);align-self:center;flex-shrink:0 }
+
+    /* ── Model info ── */
+    .model-card  { background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px 22px;display:flex;flex-direction:column;gap:12px }
+    .model-row   { display:flex;justify-content:space-between;align-items:center;font-size:.73rem }
+    .mk { color:var(--dim);font-weight:500 }
+    .mv { font-family:'Space Mono',monospace;font-size:.68rem;color:var(--accent);background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.15);padding:2px 8px;border-radius:6px }
+    .mv.g { color:var(--success);background:rgba(16,185,129,.08);border-color:rgba(16,185,129,.2) }
+
+    /* ── Bar chart ── */
+    .bar-area { padding:18px 22px }
+
+    /* ── Toast ── */
+    #toastStack { position:fixed;bottom:28px;right:28px;z-index:200;display:flex;flex-direction:column;gap:10px;pointer-events:none }
+    .toast { padding:14px 18px;border-radius:12px;font-size:.78rem;font-weight:600;display:flex;align-items:center;gap:10px;box-shadow:0 8px 30px rgba(0,0,0,.5);pointer-events:auto;animation:toastIn .35s cubic-bezier(.34,1.56,.64,1) forwards }
+    @keyframes toastIn { from{opacity:0;transform:translateX(30px)} to{opacity:1;transform:none} }
+    .toast.fraud { background:#1e0a10;border:1px solid rgba(244,63,94,.4);color:var(--danger) }
+    .toast.clean { background:#071810;border:1px solid rgba(16,185,129,.3);color:var(--success) }
+    .toast-out  { animation:toastOut .3s ease forwards }
+    @keyframes toastOut { to{opacity:0;transform:translateX(30px)} }
+    .toast-ico { font-size:16px }
+    .toast-body .t-title { font-weight:700 }
+    .toast-body .t-sub   { font-size:.68rem;opacity:.75;font-family:'Space Mono',monospace;margin-top:2px }
+
+    /* ── Banner alert (top of page, shown on first fraud) ── */
+    #fraudBanner {
+      display:none; width:100%; padding:10px 22px;
+      background:rgba(244,63,94,.1); border:1px solid rgba(244,63,94,.25);
+      border-radius:12px; margin-top:18px;
+      font-size:.78rem; font-weight:600; color:var(--danger);
+      animation:bannerIn .4s ease;
+      align-items:center; gap:10px;
+    }
+    #fraudBanner.visible { display:flex }
+    @keyframes bannerIn { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:none} }
+    .banner-pulse { animation:blink 1.2s ease-in-out infinite }
+
+    /* ── Footer ── */
+    footer { margin-top:36px;padding-top:22px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap }
+    footer p { font-size:.7rem;color:var(--dim) }
+    .tags { display:flex;gap:7px;flex-wrap:wrap }
+    .tag  { font-size:.62rem;padding:3px 10px;border-radius:100px;border:1px solid var(--border);color:var(--dim);font-family:'Space Mono',monospace }
+
+    /* ── Responsive ── */
+    @media(max-width:1050px){ .kpi-row{grid-template-columns:repeat(3,1fr)} .grid{grid-template-columns:1fr} }
+    @media(max-width:640px) { .kpi-row{grid-template-columns:1fr 1fr} .hright .clock{display:none} }
+  </style>
+</head>
+<body>
+<div class="orb o1"></div><div class="orb o2"></div>
+<div id="toastStack"></div>
+
+<div class="wrap">
+
+<!-- Header -->
+<header>
+  <div class="brand">
+    <div class="brand-icon">🛡</div>
+    <div>
+      <h1>RiskGuard</h1>
+      <span>Fraud Intelligence Platform</span>
+    </div>
+  </div>
+  <div class="hright">
+    <button class="sound-btn" id="soundBtn" onclick="toggleSound()" title="Toggle fraud alerts">
+      🔔 <span id="soundLabel">Sound ON</span>
+    </button>
+    <div class="live-pill"><div class="dot"></div>SYSTEM ACTIVE</div>
+    <div class="clock" id="clk">--:--:--</div>
+    <div style="display:flex;align-items:center;gap:8px;padding:5px 14px;background:rgba(129,140,248,.08);border:1px solid rgba(129,140,248,.2);border-radius:100px">
+      <span style="font-size:.7rem;color:#a5b4fc;font-weight:600">👤 {{ username }}</span>
+      {% if is_admin %}
+        <span style="font-size:.6rem;background:rgba(244,63,94,.15);border:1px solid rgba(244,63,94,.3);color:#f43f5e;padding:1px 7px;border-radius:4px;font-family:'Space Mono',monospace;font-weight:700">ADMIN</span>
+      {% else %}
+        <span style="font-size:.6rem;background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.25);color:#38bdf8;padding:1px 7px;border-radius:4px;font-family:'Space Mono',monospace;font-weight:700">VIEWER</span>
+      {% endif %}
+      <span style="color:rgba(129,140,248,.3)">|</span>
+      <a href="/logout" style="font-size:.68rem;color:#64748b;text-decoration:none;font-family:'Space Mono',monospace" onmouseover="this.style.color='#f43f5e'" onmouseout="this.style.color='#64748b'">LOGOUT</a>
+    </div>
+  </div>
+</header>
+
+<!-- Fraud banner (hidden until first fraud) -->
+<div id="fraudBanner">
+  <span class="banner-pulse">🚨</span>
+  <span><strong>FRAUD ALERT —</strong> Suspicious transactions detected and blocked automatically.</span>
+  <span style="margin-left:auto;font-size:.68rem;opacity:.7" id="bannerCount">0 blocked</span>
+</div>
+
+<!-- KPIs -->
+<div class="kpi-row">
+  <div class="kpi" id="kpiTotal">
+    <div class="kpi-lbl">Total Scanned</div>
+    <div class="kpi-num" id="kTotal">0</div>
+    <div class="kpi-sub">All-time transactions</div>
+    <div class="kpi-ico">📡</div>
+  </div>
+  <div class="kpi red" id="kpiFraud">
+    <div class="kpi-lbl">Fraud Detected</div>
+    <div class="kpi-num" id="kFraud">0</div>
+    <div class="kpi-sub" id="kFraudPct">0.00% of total</div>
+    <div class="kpi-ico">🚨</div>
+  </div>
+  <div class="kpi amber">
+    <div class="kpi-lbl">Blocked &amp; Logged</div>
+    <div class="kpi-num" id="kBlocked">0</div>
+    <div class="kpi-sub">Auto-actions taken</div>
+    <div class="kpi-ico">🔒</div>
+  </div>
+  <div class="kpi amber">
+    <div class="kpi-lbl">Flagged Amount</div>
+    {% if is_admin %}
+      <div class="kpi-num" id="kAmt">$0.00</div>
+      <div class="kpi-sub">Total at-risk value</div>
+    {% else %}
+      <div class="kpi-num" style="font-size:1rem;color:var(--dim)">🔒 Restricted</div>
+      <div class="kpi-sub">Admin access only</div>
+    {% endif %}
+    <div class="kpi-ico">💰</div>
+  </div>
+  <div class="kpi purple">
+    <div class="kpi-lbl">Model Accuracy</div>
+    <div class="kpi-num">99.2%</div>
+    <div class="kpi-sub">XGBoost · SMOTE</div>
+    <div class="kpi-ico">🧠</div>
+  </div>
+</div>
+
+<!-- Main grid -->
+<div class="grid">
+
+  <!-- Left column -->
+  <div class="col">
+
+    <!-- Live Transaction Feed -->
+    <div class="sc">
+      <div class="sc-head">
+        <div class="sc-title"><div class="sc-dot"></div>Live Transaction Feed</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="chip" id="feedChip">0 records</span>
+          <select id="limitSel" style="background:var(--card);border:1px solid var(--border);color:var(--mid);border-radius:8px;padding:3px 8px;font-size:.7rem;outline:none;cursor:pointer">
+            <option value="25">25 / page</option>
+            <option value="50" selected>50 / page</option>
+            <option value="100">100 / page</option>
+          </select>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>Time</th>
+            <th>TX ID</th>
+            <th>Amount</th>
+            <th>Confidence</th>
+            <th>Risk</th>
+            <th>Action</th>
+            <th>Status</th>
+          </tr></thead>
+          <tbody id="txBody"></tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <div class="page-info" id="pageInfo">Page 1</div>
+        <div class="page-btns">
+          <button class="pbtn" id="prevBtn" onclick="changePage(-1)" disabled>← Prev</button>
+          <button class="pbtn" id="nextBtn" onclick="changePage(1)"  disabled>Next →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detection Timeline -->
+    <div class="sc">
+      <div class="sc-head">
+        <div class="sc-title"><div class="sc-dot"></div>Detection Timeline</div>
+        <span style="font-size:.68rem;color:var(--dim)">Rolling 20 events</span>
+      </div>
+      <div class="bar-area"><canvas id="barChart" height="85"></canvas></div>
+    </div>
+
+  </div>
+
+  <!-- Right column -->
+  <div class="col">
+
+    <!-- Ratio donut -->
+    <div class="sc">
+      <div class="sc-head"><div class="sc-title"><div class="sc-dot"></div>Detection Ratio</div></div>
+      <div class="donut-area">
+        <div class="donut-wrap">
+          <canvas id="donutChart"></canvas>
+          <div class="donut-center">
+            <div class="donut-pct" id="dPct">0%</div>
+            <div class="donut-sub">Fraud</div>
+          </div>
+        </div>
+        <div class="legend">
+          <div class="leg"><div class="leg-l"><div class="leg-d" style="background:var(--success)"></div>Approved</div><div class="leg-v" id="lClean">0</div></div>
+          <div class="leg"><div class="leg-l"><div class="leg-d" style="background:var(--danger)"></div>Blocked</div><div class="leg-v" id="lFraud">0</div></div>
+        </div>
+      </div>
+      <!-- Risk breakdown bars (new) -->
+      <div style="border-top:1px solid var(--border);padding:12px 22px 6px">
+        <div style="font-size:.65rem;text-transform:uppercase;letter-spacing:1px;color:var(--dim);margin-bottom:10px;font-weight:700">Risk Breakdown</div>
+        <div class="risk-breakdown" id="riskBreakdown" style="padding:0">
+          <div class="riskb-row">
+            <span class="riskb-lbl" style="color:#ff2d55">CRITICAL</span>
+            <div class="riskb-bar"><div class="riskb-fill" id="rb-critical" style="width:0%;background:#ff2d55"></div></div>
+            <span class="riskb-val" id="rv-critical">0</span>
+          </div>
+          <div class="riskb-row">
+            <span class="riskb-lbl" style="color:var(--warn)">HIGH</span>
+            <div class="riskb-bar"><div class="riskb-fill" id="rb-high" style="width:0%;background:var(--warn)"></div></div>
+            <span class="riskb-val" id="rv-high">0</span>
+          </div>
+          <div class="riskb-row">
+            <span class="riskb-lbl" style="color:var(--purple)">MEDIUM</span>
+            <div class="riskb-bar"><div class="riskb-fill" id="rb-medium" style="width:0%;background:var(--purple)"></div></div>
+            <span class="riskb-val" id="rv-medium">0</span>
+          </div>
+          <div class="riskb-row">
+            <span class="riskb-lbl" style="color:var(--accent)">LOW</span>
+            <div class="riskb-bar"><div class="riskb-fill" id="rb-low" style="width:0%;background:var(--accent)"></div></div>
+            <span class="riskb-val" id="rv-low">0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fraud Alerts -->
+    <div class="sc">
+      <div class="sc-head">
+        <div class="sc-title"><div class="sc-dot" style="background:var(--danger)"></div>Fraud Alerts</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="chip red" id="alertChip">0 blocked</span>
+          {% if is_admin %}
+          <button onclick="clearFraudLog()" style="padding:3px 10px;background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.25);color:var(--danger);border-radius:6px;font-size:.65rem;font-family:'Space Mono',monospace;cursor:pointer;font-weight:700;transition:background .2s" onmouseover="this.style.background='rgba(244,63,94,.2)'" onmouseout="this.style.background='rgba(244,63,94,.1)'">
+            🗑 CLEAR
+          </button>
+          {% endif %}
+        </div>
+      </div>
+      {% if is_admin %}
+      <div class="alerts" id="alertsList">
+        <div style="padding:28px;text-align:center;color:var(--dim);font-size:.76rem">
+          No fraud detected yet<br>
+          <span style="font-size:.62rem;opacity:.55">System monitoring all transactions…</span>
+        </div>
+      </div>
+      {% else %}
+      <div style="padding:32px;text-align:center">
+        <div style="font-size:1.8rem;margin-bottom:10px">🔒</div>
+        <div style="font-size:.78rem;font-weight:600;color:var(--mid);margin-bottom:6px">Admin Access Only</div>
+        <div style="font-size:.68rem;color:var(--dim)">Fraud alert details are restricted<br>to admin accounts for security.</div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Model Registry -->
+    <div class="model-card">
+      <div class="sc-title" style="margin-bottom:4px"><div class="sc-dot" style="background:var(--purple)"></div>Model Registry</div>
+      <div class="model-row"><span class="mk">Algorithm</span><span class="mv">XGBoost</span></div>
+      <div class="model-row"><span class="mk">Balancing</span><span class="mv">SMOTE</span></div>
+      <div class="model-row"><span class="mk">Estimators</span><span class="mv">100</span></div>
+      <div class="model-row"><span class="mk">Max Depth</span><span class="mv">6</span></div>
+      <div class="model-row"><span class="mk">Eval Metric</span><span class="mv">logloss</span></div>
+      <div class="model-row"><span class="mk">Precision</span><span class="mv g">98.7%</span></div>
+      <div class="model-row"><span class="mk">Recall</span><span class="mv g">99.6%</span></div>
+      <div class="model-row"><span class="mk">F1 Score</span><span class="mv g">99.1%</span></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Footer -->
+<footer>
+  <p>RiskGuard v4.0 · Real-Time ML Fraud Detection Pipeline</p>
+  <div class="tags">
+    <span class="tag">XGBoost</span><span class="tag">SMOTE</span><span class="tag">Flask</span>
+    <span class="tag">Pandas</span><span class="tag">scikit-learn</span><span class="tag">Chart.js</span>
+  </div>
+</footer>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   Role passed from Flask
+═══════════════════════════════════════════════════════════════════ */
+const IS_ADMIN = {{ 'true' if is_admin else 'false' }};
+
+/* ═══════════════════════════════════════════════════════════════════
+   State
+═══════════════════════════════════════════════════════════════════ */
+let page = 1, limit = 50, totalRecords = 0, hasMore = false;
+let lastTopId = null, barWindow = [];
+let seenFraudIds = new Set();
+let soundEnabled = true;
+let alertModeActive = false;
+
+/* ═══════════════════════════════════════════════════════════════════
+   Clock
+═══════════════════════════════════════════════════════════════════ */
+const tick = () => document.getElementById('clk').textContent = new Date().toLocaleTimeString();
+tick(); setInterval(tick, 1000);
+
+/* ═══════════════════════════════════════════════════════════════════
+   Sound (Web Audio API — tiny beep, no files needed)
+═══════════════════════════════════════════════════════════════════ */
+let audioCtx = null;
+function getAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+function beepFraud() {
+  if (!soundEnabled) return;
+  try {
+    const ctx = getAudio();
+    [440, 520, 380].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'square'; osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.12);
+      gain.gain.linearRampToValueAtTime(0.08, ctx.currentTime + i * 0.12 + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + i * 0.12 + 0.18);
+      osc.start(ctx.currentTime + i * 0.12);
+      osc.stop(ctx.currentTime + i * 0.12 + 0.2);
+    });
+  } catch(e) {}
+}
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  document.getElementById('soundLabel').textContent = soundEnabled ? 'Sound ON' : 'Sound OFF';
+  document.getElementById('soundBtn').classList.toggle('on', soundEnabled);
+}
+document.getElementById('soundBtn').classList.add('on');
+
+/* ═══════════════════════════════════════════════════════════════════
+   Alert mode — turns on red border when fraud is detected
+═══════════════════════════════════════════════════════════════════ */
+function enableAlertMode() {
+  if (alertModeActive) return;
+  alertModeActive = true;
+  document.body.classList.add('alert-mode');
+  document.getElementById('fraudBanner').classList.add('visible');
+  document.getElementById('kpiFraud').classList.add('fraud-flash');
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Charts
+═══════════════════════════════════════════════════════════════════ */
+const donutChart = new Chart(document.getElementById('donutChart'), {
+  type: 'doughnut',
+  data: { datasets:[{ data:[1,0],
+    backgroundColor:['rgba(16,185,129,.75)','rgba(244,63,94,.8)'],
+    borderColor:['rgba(16,185,129,.25)','rgba(244,63,94,.25)'],
+    borderWidth:1, hoverOffset:4
+  }]},
+  options:{ cutout:'73%', plugins:{legend:{display:false},tooltip:{enabled:false}}, animation:{duration:500} }
+});
+
+const barChart = new Chart(document.getElementById('barChart'), {
+  type:'bar',
+  data:{
+    labels:[],
+    datasets:[
+      { label:'Approved', data:[], backgroundColor:'rgba(16,185,129,.55)',  borderColor:'rgba(16,185,129,.85)',  borderWidth:1, borderRadius:4 },
+      { label:'Blocked',  data:[], backgroundColor:'rgba(244,63,94,.55)',   borderColor:'rgba(244,63,94,.85)',   borderWidth:1, borderRadius:4 }
+    ]
+  },
+  options:{
+    responsive:true,
+    plugins:{ legend:{ labels:{ color:'rgba(148,163,184,.8)', font:{size:10}, boxWidth:10 } } },
+    scales:{
+      x:{ stacked:true, ticks:{color:'rgba(100,116,139,.8)',font:{size:9}}, grid:{color:'rgba(255,255,255,.04)'} },
+      y:{ stacked:true, ticks:{color:'rgba(100,116,139,.8)',font:{size:9},stepSize:1}, grid:{color:'rgba(255,255,255,.04)'} }
+    },
+    animation:{duration:350}
+  }
+});
+
+/* ═══════════════════════════════════════════════════════════════════
+   Toast notifications
+═══════════════════════════════════════════════════════════════════ */
+function showToast(type, title, sub) {
+  const stack = document.getElementById('toastStack');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = `
+    <div class="toast-ico">${type==='fraud' ? '🚨' : '✅'}</div>
+    <div class="toast-body">
+      <div class="t-title">${title}</div>
+      <div class="t-sub">${sub}</div>
+    </div>`;
+  stack.appendChild(t);
+  if (type === 'fraud') beepFraud();
+  setTimeout(() => { t.classList.add('toast-out'); setTimeout(() => t.remove(), 320); }, 4500);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Render table
+═══════════════════════════════════════════════════════════════════ */
+function amtClass(amount) {
+  if (amount >= 500) return 'critical';
+  if (amount >= 100) return 'high';
+  return '';
+}
+
+function renderTable(rows) {
+  const body = document.getElementById('txBody');
+  body.innerHTML = '';
+  rows.forEach(item => {
+    const isFraud  = item.status && item.status.includes('FRAUD');
+    const conf     = typeof item.confidence === 'number' ? item.confidence : parseFloat(item.confidence) || 0;
+    const level    = item.risk_level || (isFraud ? 'HIGH' : 'NONE');
+    const confColor = isFraud ? 'var(--danger)' : 'var(--success)';
+    const actionTag = isFraud
+      ? `<span class="action-tag blocked">🔒 BLOCKED</span>`
+      : `<span class="action-tag approved">✔ APPROVED</span>`;
+
+    const tr = document.createElement('tr');
+    if (isFraud) tr.classList.add('fraud-row');
+    tr.innerHTML = `
+      <td class="mono">${item.time || '—'}</td>
+      <td class="mono">#${String(item.id||0).replace(/\..*/,'').padStart(6,'0')}</td>
+      <td class="amt ${amtClass(item.amount || 0)}">$${parseFloat(item.amount||0).toFixed(2)}</td>
+      <td>
+        <div class="conf-bar">
+          <div class="bar-track">
+            <div class="bar-fill" style="width:${Math.min(conf,100)}%;background:${confColor}"></div>
+          </div>
+          <span class="bar-lbl">${conf.toFixed(1)}%</span>
+        </div>
+      </td>
+      <td><span class="risk ${level}">${level}</span></td>
+      <td>${actionTag}</td>
+      <td><span class="badge ${isFraud?'fraud':'clean'}">${isFraud?'🚨 FRAUD':'✅ CLEAN'}</span></td>
+    `;
+    body.appendChild(tr);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Update KPIs
+═══════════════════════════════════════════════════════════════════ */
+function updateStats(s) {
+  document.getElementById('kTotal').textContent    = s.total;
+  document.getElementById('kFraud').textContent    = s.fraud_count;
+  document.getElementById('kFraudPct').textContent = `${s.fraud_rate}% of total`;
+  document.getElementById('kBlocked').textContent  = s.fraud_count;
+  // Flagged amount — admin only
+  if (IS_ADMIN && document.getElementById('kAmt')) {
+    document.getElementById('kAmt').textContent = '$' + (s.fraud_amount||0).toFixed(2);
+  }
+  document.getElementById('lClean').textContent     = s.clean_count;
+  document.getElementById('lFraud').textContent     = s.fraud_count;
+  document.getElementById('dPct').textContent       = s.fraud_rate + '%';
+  document.getElementById('alertChip').textContent  = `${s.fraud_count} blocked`;
+  document.getElementById('bannerCount').textContent = `${s.fraud_count} blocked`;
+
+  donutChart.data.datasets[0].data = [Math.max(s.clean_count, .0001), s.fraud_count];
+  donutChart.update();
+
+  const rb = s.risk_breakdown || {};
+  const total = (rb.CRITICAL||0) + (rb.HIGH||0) + (rb.MEDIUM||0) + (rb.LOW||0);
+  ['CRITICAL','HIGH','MEDIUM','LOW'].forEach(lvl => {
+    const count = rb[lvl] || 0;
+    const pct   = total > 0 ? (count / total * 100) : 0;
+    const el    = document.getElementById('rb-' + lvl.toLowerCase());
+    const vEl   = document.getElementById('rv-' + lvl.toLowerCase());
+    if (el) el.style.width = pct + '%';
+    if (vEl) vEl.textContent = count;
+  });
+
+  if (s.fraud_count > 0) enableAlertMode();
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Clear Fraud Log — ADMIN only
+═══════════════════════════════════════════════════════════════════ */
+function clearFraudLog() {
+  if (!IS_ADMIN) return;
+  if (!confirm('Clear all fraud logs and blocked list? This cannot be undone.')) return;
+  fetch('/clear-fraud-log', { method: 'POST' })
+    .then(r => r.json())
+    .then(res => {
+      if (res.success) {
+        document.getElementById('alertsList').innerHTML = `
+          <div style="padding:28px;text-align:center;color:var(--dim);font-size:.76rem">
+            Fraud log cleared ✓<br>
+            <span style="font-size:.62rem;opacity:.55">System monitoring all transactions…</span>
+          </div>`;
+        document.getElementById('alertChip').textContent = '0 blocked';
+        showToast('clean', 'Fraud log cleared', 'All records wiped by admin');
+      }
+    })
+    .catch(() => {});
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Update Fraud Alerts panel
+═══════════════════════════════════════════════════════════════════ */
+function updateAlerts(log) {
+  if (!IS_ADMIN) return;   // viewer cannot see fraud alert details
+  if (!log.length) return;
+  const list = document.getElementById('alertsList');
+  list.innerHTML = '';
+  log.slice(0, 20).forEach(item => {
+    const ts    = item.blocked_at ? new Date(item.blocked_at).toLocaleTimeString() : '—';
+    const level = item.risk_level || 'HIGH';
+    const div   = document.createElement('div');
+    div.className = 'alert-row';
+    div.innerHTML = `
+      <div class="a-icon">🚨</div>
+      <div class="a-body">
+        <div class="a-title">Transaction Blocked</div>
+        <div class="a-meta">ID #${String(item.id||0).replace(/\..*/,'').padStart(6,'0')} · ${ts}</div>
+        <div class="a-tags">
+          <span class="risk ${level}">${level}</span>
+          <span style="font-size:.6rem;color:var(--danger);background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.22);padding:2px 7px;border-radius:4px;font-weight:700;letter-spacing:.5px;font-family:'Space Mono',monospace">
+            🔒 ${item.action || 'BLOCKED'}
+          </span>
+          ${item.confidence ? `<span style="font-size:.6rem;color:var(--dim);font-family:'Space Mono',monospace">Conf: ${item.confidence}%</span>` : ''}
+        </div>
+      </div>
+      <div class="a-amt">$${parseFloat(item.amount||0).toFixed(2)}</div>
+    `;
+    list.appendChild(div);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Bar chart update
+═══════════════════════════════════════════════════════════════════ */
+function updateBar(rows) {
+  if (!rows.length) return;
+  const latest = rows[0];
+  if (latest.id === (barWindow[barWindow.length-1]||{}).id) return;
+  const isFraud = latest.status && latest.status.includes('FRAUD');
+  barWindow.push({ time: latest.time, isFraud, id: latest.id });
+  if (barWindow.length > 20) barWindow.shift();
+
+  barChart.data.labels              = barWindow.map(b => b.time);
+  barChart.data.datasets[0].data    = barWindow.map(b => b.isFraud ? 0 : 1);
+  barChart.data.datasets[1].data    = barWindow.map(b => b.isFraud ? 1 : 0);
+  barChart.update();
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Toast on new fraud
+═══════════════════════════════════════════════════════════════════ */
+function checkNewFraud(rows) {
+  rows.filter(r => r.status && r.status.includes('FRAUD')).forEach(r => {
+    if (!seenFraudIds.has(r.id)) {
+      seenFraudIds.add(r.id);
+      const lvl   = r.risk_level || 'FRAUD';
+      const label = lvl !== 'NONE' ? ` [${lvl}]` : '';
+      showToast('fraud',
+        `🔒 Fraud Blocked${label} — $${parseFloat(r.amount||0).toFixed(2)}`,
+        `TX #${String(r.id||0).replace(/\..*/,'').padStart(6,'0')} · ${r.time}`
+      );
+    }
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Pagination
+═══════════════════════════════════════════════════════════════════ */
+function changePage(dir) {
+  page = Math.max(1, page + dir);
+  fetchPage();
+}
+
+function fetchPage() {
+  limit = parseInt(document.getElementById('limitSel').value);
+  fetch(`/data?page=${page}&limit=${limit}`)
+    .then(r => r.json())
+    .then(res => {
+      totalRecords = res.total;
+      hasMore      = res.has_more;
+      const rows   = res.data || [];
+
+      renderTable(rows);
+      updateBar(rows);
+      checkNewFraud(rows);
+
+      document.getElementById('feedChip').textContent = `${totalRecords} records`;
+      document.getElementById('pageInfo').textContent =
+        `Page ${page} · ${(page-1)*limit+1}–${Math.min(page*limit, totalRecords)} of ${totalRecords}`;
+      document.getElementById('prevBtn').disabled = page <= 1;
+      document.getElementById('nextBtn').disabled = !hasMore;
+      document.querySelector('.tbl-wrap').scrollTop = 0;
+    })
+    .catch(() => {});
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Poll loop — checks every second for new transactions
+═══════════════════════════════════════════════════════════════════ */
+function poll() {
+  fetch('/data?page=1&limit=1')
+    .then(r => r.json())
+    .then(res => {
+      const newest = res.data && res.data[0];
+      if (newest && newest.id !== lastTopId) {
+        lastTopId = newest.id;
+        Promise.all([
+          fetch('/stats').then(r => r.json()),
+          fetch('/fraud-log').then(r => r.json())
+        ]).then(([stats, log]) => {
+          updateStats(stats);
+          updateAlerts(log);
+        }).catch(() => {});
+        if (page === 1) fetchPage();
+      }
+    })
+    .catch(() => {});
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Init
+═══════════════════════════════════════════════════════════════════ */
+document.getElementById('limitSel').addEventListener('change', () => { page=1; fetchPage(); });
+fetchPage();
+// Also load stats immediately on page load
+fetch('/stats').then(r=>r.json()).then(updateStats).catch(()=>{});
+fetch('/fraud-log').then(r=>r.json()).then(updateAlerts).catch(()=>{});
+setInterval(poll, 1000);
+</script>
+</body>
+</html>

@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>RiskGuard — Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:      #080c12;
+      --card:    #0d1420;
+      --border:  rgba(56,189,248,.14);
+      --accent:  #38bdf8;
+      --danger:  #f43f5e;
+      --success: #10b981;
+      --txt:     #e2f0fb;
+      --mid:     #94a3b8;
+      --dim:     #64748b;
+    }
+
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0 }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--txt);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* Grid background */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(56,189,248,.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(56,189,248,.03) 1px, transparent 1px);
+      background-size: 44px 44px;
+      pointer-events: none;
+    }
+
+    /* Ambient orbs */
+    .orb { position:fixed; border-radius:50%; filter:blur(100px); pointer-events:none }
+    .o1  { width:500px; height:500px; background:rgba(56,189,248,.06);  top:-150px; left:-150px }
+    .o2  { width:400px; height:400px; background:rgba(129,140,248,.05); bottom:-100px; right:-100px }
+
+    /* Card */
+    .card {
+      position: relative; z-index: 1;
+      width: 100%; max-width: 420px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 44px 40px 40px;
+      box-shadow: 0 32px 80px rgba(0,0,0,.5);
+      animation: cardIn .5s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes cardIn {
+      from { opacity:0; transform:translateY(28px) scale(.97) }
+      to   { opacity:1; transform:none }
+    }
+
+    /* Brand */
+    .brand {
+      display: flex; align-items: center; gap: 14px;
+      margin-bottom: 32px;
+    }
+    .brand-icon {
+      width: 48px; height: 48px;
+      background: var(--accent); border-radius: 13px;
+      display: grid; place-items: center;
+      font-size: 22px;
+      box-shadow: 0 0 24px rgba(56,189,248,.3);
+    }
+    .brand h1 {
+      font-family: 'Space Mono', monospace;
+      font-size: 1.25rem; font-weight: 700;
+    }
+    .brand span {
+      display: block; font-size: .65rem;
+      color: var(--accent); text-transform: uppercase;
+      letter-spacing: 2px; font-weight: 600; margin-top: 2px;
+    }
+
+    /* Title */
+    .login-title {
+      font-size: 1.1rem; font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .login-sub {
+      font-size: .78rem; color: var(--dim);
+      margin-bottom: 28px;
+    }
+
+    /* Flash messages */
+    .flash {
+      padding: 10px 14px; border-radius: 10px;
+      font-size: .78rem; font-weight: 500;
+      margin-bottom: 20px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .flash.error {
+      background: rgba(244,63,94,.1);
+      border: 1px solid rgba(244,63,94,.3);
+      color: var(--danger);
+    }
+    .flash.info {
+      background: rgba(56,189,248,.08);
+      border: 1px solid rgba(56,189,248,.22);
+      color: var(--accent);
+    }
+
+    /* Form */
+    .field { margin-bottom: 18px }
+    label {
+      display: block; font-size: .72rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 1px;
+      color: var(--mid); margin-bottom: 8px;
+    }
+    input[type="text"],
+    input[type="password"] {
+      width: 100%; padding: 12px 16px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--txt);
+      font-family: 'DM Sans', sans-serif;
+      font-size: .88rem;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    input[type="text"]:focus,
+    input[type="password"]:focus {
+      border-color: rgba(56,189,248,.5);
+      box-shadow: 0 0 0 3px rgba(56,189,248,.1);
+    }
+    input::placeholder { color: var(--dim) }
+
+    /* Password wrapper with toggle */
+    .pw-wrap { position: relative }
+    .pw-wrap input { padding-right: 44px }
+    .pw-toggle {
+      position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; color: var(--dim);
+      cursor: pointer; font-size: 16px; padding: 0;
+      transition: color .2s;
+    }
+    .pw-toggle:hover { color: var(--accent) }
+
+    /* Remember me */
+    .remember {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 24px; cursor: pointer;
+    }
+    .remember input[type="checkbox"] {
+      width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer;
+    }
+    .remember span { font-size: .78rem; color: var(--mid) }
+
+    /* Submit button */
+    .btn {
+      width: 100%; padding: 13px;
+      background: var(--accent);
+      color: #080c12;
+      font-family: 'Space Mono', monospace;
+      font-size: .82rem; font-weight: 700;
+      border: none; border-radius: 10px;
+      cursor: pointer;
+      transition: opacity .2s, transform .15s, box-shadow .2s;
+      box-shadow: 0 4px 20px rgba(56,189,248,.3);
+      letter-spacing: .5px;
+    }
+    .btn:hover {
+      opacity: .9; transform: translateY(-1px);
+      box-shadow: 0 8px 28px rgba(56,189,248,.4);
+    }
+    .btn:active { transform: translateY(0) }
+
+    /* Loading state */
+    .btn.loading { opacity: .7; pointer-events: none }
+
+    /* Footer note */
+    .note {
+      text-align: center; margin-top: 24px;
+      font-size: .68rem; color: var(--dim);
+      display: flex; align-items: center; gap: 6px;
+      justify-content: center;
+    }
+    .note::before, .note::after {
+      content: ''; flex: 1;
+      height: 1px; background: var(--border);
+    }
+  </style>
+</head>
+<body>
+<div class="orb o1"></div>
+<div class="orb o2"></div>
+
+<div class="card">
+
+  <!-- Brand -->
+  <div class="brand">
+    <div class="brand-icon">🛡</div>
+    <div>
+      <h1>RiskGuard</h1>
+      <span>Fraud Intelligence Platform</span>
+    </div>
+  </div>
+
+  <div class="login-title">Welcome back</div>
+  <div class="login-sub">Sign in to access the fraud intelligence dashboard.</div>
+
+  <!-- Flash messages from Flask -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="flash {{ category }}">
+        {{ '🔐' if category == 'error' else 'ℹ️' }} {{ message }}
+      </div>
+    {% endfor %}
+  {% endwith %}
+
+  <!-- Login form -->
+  <form method="POST" id="loginForm">
+
+    <div class="field">
+      <label for="username">Username</label>
+      <input
+        type="text" id="username" name="username"
+        placeholder="Enter your username"
+        autocomplete="username" required autofocus
+      />
+    </div>
+
+    <div class="field">
+      <label for="password">Password</label>
+      <div class="pw-wrap">
+        <input
+          type="password" id="password" name="password"
+          placeholder="Enter your password"
+          autocomplete="current-password" required
+        />
+        <button type="button" class="pw-toggle" onclick="togglePw()" title="Show/hide password">
+          👁
+        </button>
+      </div>
+    </div>
+
+    <label class="remember">
+      <input type="checkbox" name="remember"/>
+      <span>Keep me signed in</span>
+    </label>
+
+    <button type="submit" class="btn" id="submitBtn">
+      SIGN IN →
+    </button>
+
+  </form>
+
+  <div class="note">Secured with Flask-Login · Bcrypt password hashing</div>
+
+</div>
+
+<script>
+  function togglePw() {
+    const inp = document.getElementById('password');
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+  }
+
+  document.getElementById('loginForm').addEventListener('submit', function() {
+    const btn = document.getElementById('submitBtn');
+    btn.textContent = 'SIGNING IN…';
+    btn.classList.add('loading');
+  });
+</script>
+</body>
+</html>
