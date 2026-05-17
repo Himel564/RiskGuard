@@ -3,10 +3,3 @@ __pycache__/
 *.pyc
 .env
 .vscode/
-
-users.json
-history.json
-stream.json
-fraud_log.json
-blocked.json
-model_metrics.json
