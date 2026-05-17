@@ -281,17 +281,6 @@ AMOUNT_HIGH     = 500.0  # amount ($)   → escalates risk level
 
 ---
 
-## 🗺️ Roadmap
-
-- [ ] Deploy to Render / Railway (live public URL)
-- [ ] Replace file polling with WebSockets for true real-time updates
-- [ ] Add Kafka integration for production-grade streaming
-- [ ] Add email/SMS webhook alerts (Twilio / SendGrid)
-- [ ] Docker containerization
-- [ ] Unit tests
-
----
-
 ## 👤 Author
 
 **Himel Biswas**
