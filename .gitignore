@@ -3,8 +3,7 @@ __pycache__/
 *.pyc
 .env
 .vscode/
-# Has user passwords 
-users.json
+
 
 # Auto-generated every run 
 history.json

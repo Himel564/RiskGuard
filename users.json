@@ -1,0 +1,14 @@
+{
+  "Himel Biswas": {
+    "password_hash": "scrypt:32768:8:1$zzTausyTJvBDKyrr$13654e22a6460e41df06fccf0c20c493c020d4f46e334b095c81833783517bd7443e3847288718309f3956a2b65a9bcaff7e6b8a2e322f52b416d70705ad690a",
+    "role": "admin"
+  },
+  "demo": {
+    "password_hash": "scrypt:32768:8:1$3kPMZjffzTENz0Ok$17865a058f789d8bc25c66f3e99507bf2012b3d24e57ef1a16fefedeb1454512b4282ec281dedf18c6865b515ce97857ec31367eccd7412f9267e34f366967c7",
+    "role": "viewer"
+  },
+  "admin": {
+    "password_hash": "scrypt:32768:8:1$qmEGeN3bJeQP3hU7$7d0359c31019114bcea4d0fd9b9e038f1b48c9843d3f213e2ef5a1ec4cf73c5477b2a09443fdc775c713eb02390ac8a92b8e95f9f6353aa5c76a9a1b464b997b",
+    "role": "admin"
+  }
+}
