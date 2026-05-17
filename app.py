@@ -261,8 +261,20 @@ def health():
 
 
 # ── Run ───────────────────────────────────────────────────────────────────────
+import threading
+import subprocess
+import sys
+
+def run_producer():
+    subprocess.run([sys.executable, 'producer.py'])
+
+def run_detector():
+    subprocess.run([sys.executable, 'detector.py'])
+
+# Auto-start background workers
+threading.Thread(target=run_producer, daemon=True).start()
+threading.Thread(target=run_detector, daemon=True).start()
+
 if __name__ == '__main__':
-    if not os.path.exists(USERS_FILE):
-        print("\n⚠️  No users found!  Run:  python create_user.py  first.\n")
-    print("🌐  RiskGuard Dashboard  →  http://127.0.0.1:5000")
-    app.run(debug=True, port=5000)
+    print("🌐 RiskGuard Dashboard → http://127.0.0.1:5000")
+    app.run(debug=False, port=5000)
