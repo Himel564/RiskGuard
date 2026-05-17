@@ -3,11 +3,3 @@ __pycache__/
 *.pyc
 .env
 .vscode/
-
-
-# Auto-generated every run 
-history.json
-stream.json
-fraud_log.json
-blocked.json
-model_metrics.json
