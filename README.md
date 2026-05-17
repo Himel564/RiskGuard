@@ -12,7 +12,7 @@ A real-time credit card fraud detection pipeline that streams live transactions,
 
 ## 🌐 Live Demo
 
-> **[https://riskguard.onrender.com](https://riskguard.onrender.com)**
+> **[https://riskguard-4d73.onrender.com](https://riskguard-4d73.onrender.com)**
 
 | Role | Username | Password |
 |---|---|---|
@@ -63,13 +63,13 @@ creditcard.csv
       │
       ▼
 ┌─────────────┐     stream.json      ┌──────────────┐     history.json
-│ producer.py │ ──────────────────▶  │ detector.py  │ ──────────────────▶ ┌──────────┐
+│ producer.py │ ──────────────────▶ │ detector.py  │ ──────────────────▶  ┌──────────┐
 │             │   1 tx / 2 seconds   │              │                      │  app.py  │
 │ Streams     │                      │ XGBoost      │   fraud_log.json     │          │
-│ transactions│                      │ model runs   │ ──────────────────▶  │  Flask   │
+│ transactions│                      │ model runs   │ ──────────────────   │  Flask   │
 └─────────────┘                      │ on each tx   │                      │  serves  │
                                      └──────────────┘   blocked.json       │ dashboard│
-                                           │          ──────────────────▶  └──────────┘
+                                           │          ──────────────────▶ └──────────┘
                                            │                                    │
                                     If FRAUD detected:                          ▼
                                     1. Block  (blocked.json)           http://127.0.0.1:5000
@@ -128,7 +128,7 @@ RiskGuard/
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/riskguard.git
+git clone https://github.com/Himel564/RiskGuard.git
 cd riskguard
 ```
 
@@ -293,20 +293,6 @@ AMOUNT_HIGH     = 500.0  # amount ($)   → escalates risk level
 
 ## 👤 Author
 
-**Your Name**
-- GitHub: [@yourusername](https://github.com/yourusername)
-- LinkedIn: [linkedin.com/in/yourprofile](https://linkedin.com/in/yourprofile)
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License.
-
----
-
-## 🙏 Acknowledgements
-
-- Dataset: [Kaggle — Credit Card Fraud Detection](https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud) by ULB Machine Learning Group
-- XGBoost by DMLC
-- Chart.js for dashboard visualizations
+**Himel Biswas**
+- GitHub: [@yourusername](https://github.com/Himel564)
+- LinkedIn: [linkedin.com/in/yourprofile](https://www.linkedin.com/in/himel564/)
