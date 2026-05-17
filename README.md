@@ -24,7 +24,7 @@ A real-time credit card fraud detection pipeline that streams live transactions,
 ## 📸 Preview
 
 ![RiskGuard Login](screenshots/login_page.png)
-![RiskGuard Dashboard](screenshots/dashboard.png)
+![RiskGuard Dashboard](screenshots/Dashboard.png)
 
 ---
 
