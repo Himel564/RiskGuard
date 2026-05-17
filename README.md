@@ -23,6 +23,7 @@ A real-time credit card fraud detection pipeline that streams live transactions,
 
 ## 📸 Preview
 
+![RiskGuard Login](screenshots/login_page.png)
 ![RiskGuard Dashboard](screenshots/dashboard.png)
 
 ---
@@ -294,5 +295,5 @@ AMOUNT_HIGH     = 500.0  # amount ($)   → escalates risk level
 ## 👤 Author
 
 **Himel Biswas**
-- GitHub: [@yourusername](https://github.com/Himel564)
-- LinkedIn: [linkedin.com/in/yourprofile](https://www.linkedin.com/in/himel564/)
+- GitHub: [Himel564](https://github.com/Himel564)
+- LinkedIn: [himel564](https://www.linkedin.com/in/himel564/)
